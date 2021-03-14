@@ -1,0 +1,83 @@
+templates:
+  tv-series:
+    configure_series:
+      from:
+        filesystem:
+          - <path>
+      settings:
+        quality: 720p
+        
+        set:
+          content_filename: "{{ tvdb_series_name }} - {{ tvdb_ep_id }} - {{ tvdb_ep_name }}"
+          main_file_only: yes
+    series:
+      - The Blacklist
+       
+    exists_series:
+      path: <path>{{ tvdb_series_name }}
+      allow_different_qualities: better
+    thetvdb_lookup: yes
+    regexp:
+      reject:
+        - CENSORED: {from: title}
+        - SCREENER: {from: title}
+        - LATINO: {from: title}
+        - VOS: {from: title}
+        - V.O: {from: title}
+        - SUBT: {from: title}
+        - SUBS: {from: title}
+        - INGLES: {from: title}
+        - SUBTITUL: {from: title}
+  torrent:
+    private_torrents: no
+    transmission:
+      enabled: yes
+      host: localhost
+      port: 9091
+      username: topsy
+      password: sadia123
+tasks:
+  download:
+    priority: 1
+    rss:
+      url: http://showrss.info/null&re=null
+    template:
+      - tv-series
+      - torrent
+  sort_series:
+    priority: 2
+    filesystem:
+      path: <download path>
+      regexp: '.*\.(mkv)$'
+      recursive: yes
+      retrieve: files
+    thetvdb_lookup: yes
+    metainfo_series: yes
+    require_field: [tvdb_series_name, tvdb_season, tvdb_ep_name, tvdb_ep_id]
+    accept_all: yes
+    seen: local
+    disable:
+      - seen
+      - seen_info_hash
+      - retry_failed
+    move:
+      to: <move path>{{ tvdb_series_name  }}\Season {{ tvdb_season|pad(2) }}
+      rename: "{{ tvdb_series_name }} - {{ tvdb_ep_id }} - {{ tvdb_ep_name }}"
+      
+  stopSeeding:
+    from_transmission:
+      port: 9091
+      host: localhost
+      username: user
+      password: password
+    disable: [seen, seen_info_hash]
+    if:
+      - transmission_progress == 100: accept
+      - not transmission_seed_ratio_ok: reject
+      - not transmission_idle_limit_ok: reject
+    transmission:
+      host: localhost
+      port: 9091
+      username: user
+      password: password
+      action: remove
