@@ -34,8 +34,8 @@ templates:
       enabled: yes
       host: localhost
       port: 9091
-      username: topsy
-      password: sadia123
+      username: username
+      password: passwd
 tasks:
   download:
     priority: 1
